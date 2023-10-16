@@ -59,7 +59,8 @@ def getCarsFromResult(result):
             "employee": row[5],
             "description": row[6]  
         }
-    cars.append(car)
+        cars.append(car)
+    return cars
 
 '''
 List all the associated cars in the database by employee
@@ -67,13 +68,14 @@ List all the associated cars in the database by employee
 def findCarsByEmployee(userName):
     conn = openConnection()
     cur = conn.cursor()
+
     cur.execute("SELECT * FROM CarDetails WHERE \"Managed By\" = %s or \"Managed By\" is null order by purchasedate asc,description asc ,status desc", (userName,))
     result = cur.fetchall()
+
     cur.close()
     conn.close()
-    print(result)
-    cars = getCarsFromResult(result)
 
+    cars = getCarsFromResult(result)
     return cars
 
 
@@ -86,44 +88,14 @@ def findCarsByCriteria(searchString): #added username for better search
     cur = conn.cursor()
 
     query = """
-            select
-            * 
-            from 
-            cardetails c 
-            where 
-            c.id in (
-            SELECT
-                car.carid 
-                FROM Car car
-                LEFT JOIN Status s ON car.statusid = s.statusid
-                left join cartype ct on car.cartypeid = ct.cartypeid 
-                left join carwheel cw on car.carwheelid = cw.carwheelid 
-                left join employee e on car.managedby = e.username
-                WHERE 
-                    (
-                        UPPER(make) LIKE UPPER(%s) OR
-                        UPPER(model) LIKE UPPER(%s) OR
-                        UPPER(s.statusName) LIKE UPPER(%s) OR
-                        UPPER(ct.carTypeName) LIKE UPPER(%s) OR
-                        UPPER(cw.carwheelname) LIKE UPPER(%s) OR
-                        UPPER(CONCAT(e.firstname, ' ', e.lastname)) LIKE UPPER(%s) OR
-                        UPPER(description) LIKE UPPER(%s)
-                    )
-                    AND car.purchaseDate >= CURRENT_DATE - INTERVAL '15 years'
-            )
-            ORDER BY
-                c."Managed By" IS NULL DESC,
-                c.purchaseDate ASC
-            ;
+            select * from search_car_details(%s);
             """
-    search_pattern = "%" + searchString + "%"  # create a pattern for the LIKE query
-    cur.execute(query, (search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern))
+    cur.execute(query, (searchString,))
     result = cur.fetchall()
     
     cur.close()
     conn.close()
 
-    print(result)
     cars = getCarsFromResult(result)
     return cars
 
@@ -146,12 +118,34 @@ def addCar(make, model, type, wheel, purchasedate, description):
     cur.close()
     conn.close()
 
-    return result[0] == 'Success'
+    if result[0] == 'Success':
+        return True
+    else :
+        print(result[0])
+        return False
 
 
 '''
 Update an existing car
 '''
 def updateCar(carid, make, model, status, type, wheel, purchasedate, employee, description):
+    params = [carid, make, model, status, type, wheel, purchasedate, employee, description]
+    for index, param in enumerate(params):
+        if param == "" or param == "None":
+            params[index] = None
+    conn = openConnection()
+    cur = conn.cursor()
+    query = """
+            select update_car(%s,%s,%s,%s,%s,%s,%s,%s,%s);
+            """
+    cur.execute(query,params)
+    result = cur.fetchone()
+    conn.commit()
 
-    return
+    cur.close()
+    conn.close()
+    if result[0] == 'Success':
+        return True
+    else :
+        print(result[0])
+        return False
