@@ -36,6 +36,7 @@ def openConnection():
 Validate employee based on username and password
 '''
 def checkEmployeeCredentials(userName, password):
+    userName = userName.lower()
     conn = openConnection()
     cur = conn.cursor()
     cur.execute("SELECT * FROM employee WHERE username = %s AND password = %s", (userName, password))
@@ -69,7 +70,7 @@ def findCarsByEmployee(userName):
     conn = openConnection()
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM CarDetails WHERE \"Managed By\" = %s or \"Managed By\" is null order by purchasedate asc,description asc ,status desc", (userName,))
+    cur.execute("SELECT * FROM CarDetails WHERE \"M\" = %s order by purchasedate asc,description asc ,status desc", (userName,))
     result = cur.fetchall()
 
     cur.close()
@@ -77,7 +78,6 @@ def findCarsByEmployee(userName):
 
     cars = getCarsFromResult(result)
     return cars
-
 
 '''
 Find a list of cars based on the searchString provided as parameter
@@ -144,7 +144,7 @@ def updateCar(carid, make, model, status, type, wheel, purchasedate, employee, d
 
     cur.close()
     conn.close()
-    if result[0] == 'Success':
+    if result[0] == 'success':
         return True
     else :
         print(result[0])
